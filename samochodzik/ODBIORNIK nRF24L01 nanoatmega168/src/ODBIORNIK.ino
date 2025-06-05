@@ -203,6 +203,8 @@ void loop() {
     if (light_on) {
       ledBlinkAllState = led_front_back_blink_both;
     }
+    // Use joystick 1 Y for forward/backward, joystick 2 X for left/right
+    int8_t joy2X = data_received.analog[ANALOG_JOY2_X];
 
     if (joyY > deadZone) {
       driveForward();
@@ -211,11 +213,11 @@ void loop() {
       driveBackward();
       ledBackState = led_back_off;
       buzzerState = buzzer_beep;
-    } else if (joyX > deadZone) {
+    } else if (joy2X > deadZone) {
       turnRight();
       ledBackState = led_back_off;
       ledFrontState = light_on ? led_front_blink_right_left_on : led_front_blink_right;
-    } else if (joyX < -deadZone) {
+    } else if (joy2X < -deadZone) {
       turnLeft();
       ledBackState = led_back_off;
       ledFrontState = light_on ? led_front_blink_left_right_on : led_front_blink_left;
@@ -226,7 +228,22 @@ void loop() {
     if (data_received.button_2) {
       buzzerState = buzzer_on;
     }
-
+    // If button_6 (light switch) is ON and car is not moving, turn off all lights and blink all lights
+    if (data_received.button_6 && abs(joyY) <= deadZone && abs(joy2X) <= deadZone) {
+      // Turn off all lights
+      digitalWrite(LED_RED_LEFT, LOW);
+      digitalWrite(LED_RED_RIGHT, LOW);
+      digitalWrite(LED_YELLOW_LEFT, LOW);
+      digitalWrite(LED_YELLOW_RIGHT, LOW);
+      // Blink all lights
+      bool blink = (millis() / 500) % 2;
+      digitalWrite(LED_RED_LEFT, blink);
+      digitalWrite(LED_RED_RIGHT, blink);
+      digitalWrite(LED_YELLOW_LEFT, blink);
+      digitalWrite(LED_YELLOW_RIGHT, blink);
+      // Skip further LED logic for this loop
+      return;
+    }
     // Back LEDs
     if (ledBackState == led_back_on) {
       digitalWrite(LED_RED_LEFT, HIGH);
